@@ -19,7 +19,7 @@ class YTMusicTransfer:
 
     def create_playlist(self, name, info, privacy="PRIVATE", tracks=None):
         return self.api.create_playlist(name, info, privacy, video_ids=tracks)
-
+        
     def search_songs(self, tracks):
         videoIds = []
         songs = list(tracks)
@@ -80,3 +80,17 @@ class YTMusicTransfer:
             print(str(len(matches)) + " playlists deleted.")
         else:
             print("Aborted. No playlists were deleted.")
+
+    def check_songs(self, playlistId:str, songs:list[str]):
+        items = self.api.get_playlist(playlistId, 10000)
+        sameSongs = []
+        if "tracks" in items and "title" in items["tracks"]:
+            for track in items["tracks"]:
+                for song in songs:
+                #might need to do this a diff way
+                    if song.lower() in track["title"].lower():
+                        sameSongs.append(song)
+                        break
+        songs.remove(sameSongs)
+        return songs
+                                      

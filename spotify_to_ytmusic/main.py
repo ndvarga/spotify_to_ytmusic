@@ -40,7 +40,7 @@ def get_args(args=None):
         action="store_true",
         help="Make created playlist public. Default: private",
     )
-
+    
     create_parser = subparsers.add_parser(
         "create",
         help="Create a new playlist on YouTube Music.",
@@ -65,7 +65,10 @@ def get_args(args=None):
     update_parser.add_argument(
         "--append", help="Do not delete items, append to target playlist instead"
     )
-
+    update_parser.add_argument(
+        "--allnew", 
+        help = "add new songs to their own playlist"
+    )
     remove_parser = subparsers.add_parser(
         "remove", help="Remove playlists with specified regex pattern."
     )

@@ -51,14 +51,13 @@ def all(args):
             print(f"Could not transfer playlist {p['name']}. {str(ex)}")
 
 
-def _create_ytmusic(args, playlist, ytmusic):
+def _create_ytmusic(args, playlist, ytmusic:YTMusicTransfer):
     date = ""
     if args.date:
         date = " " + datetime.today().strftime("%m/%d/%Y")
     name = args.name + date if args.name else playlist["name"] + date
     info = playlist["description"] if (args.info is None) else args.info
     videoIds = ytmusic.search_songs(playlist["tracks"])
-
     playlistId = ytmusic.create_playlist(
         name, info, "PUBLIC" if args.public else "PRIVATE", videoIds
     )
@@ -83,12 +82,19 @@ def update(args):
     spotify, ytmusic = _init()
     playlist = _get_spotify_playlist(spotify, args.playlist)
     playlistId = ytmusic.get_playlist_id(args.name)
-    videoIds = ytmusic.search_songs(playlist["tracks"])
-    if not args.append:
-        ytmusic.remove_songs(playlistId)
-    time.sleep(2)
-    ytmusic.add_playlist_items(playlistId, videoIds)
-
+    if args.allnew:
+        #create a new playlist for changes
+        ytmusic.create_playlist(playlist["name"])
+        #see if the songs in the spotify playlist exist in the youtube music playlist, if it doesn't add it to the new playlist
+        newSongs = ytmusic.check_songs(playlistId, playlist["tracks"])
+        newVideoIds = ytmusic.search_songs(newSongs)
+        ytmusic.add_playlist_items(playlistId, newVideoIds)
+    else:    
+        videoIds = ytmusic.search_songs(playlist["tracks"])
+        if not args.append:
+            ytmusic.remove_songs(playlistId)
+        time.sleep(2)
+        ytmusic.add_playlist_items(playlistId, videoIds)
 
 def remove(args):
     ytmusic = YTMusicTransfer()
