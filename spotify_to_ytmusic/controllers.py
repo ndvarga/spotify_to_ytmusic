@@ -82,20 +82,20 @@ def update(args):
     spotify, ytmusic = _init()
     playlist = _get_spotify_playlist(spotify, args.playlist)
     playlistId = ytmusic.get_playlist_id(args.name)
-    if args.allnew:
+    print(args.onlynew)
+    if args.onlynew:
         #create a new playlist for changes
         ytmusic.create_playlist(playlist["name"])
         #see if the songs in the spotify playlist exist in the youtube music playlist, if it doesn't add it to the new playlist
         newSongs = ytmusic.check_songs(playlistId, playlist["tracks"])
         newVideoIds = ytmusic.search_songs(newSongs)
         ytmusic.add_playlist_items(playlistId, newVideoIds)
-    else:    
-        videoIds = ytmusic.search_songs(playlist["tracks"])
-        if not args.append:
-            ytmusic.remove_songs(playlistId)
-        time.sleep(2)
-        ytmusic.add_playlist_items(playlistId, videoIds)
-
+   # else:    
+   #     videoIds = ytmusic.search_songs(playlist["tracks"])
+    #    if not args.append:
+     #       ytmusic.remove_songs(playlistId)
+      #  time.sleep(2)
+       # ytmusic.add_playlist_items(playlistId, videoIds)
 def remove(args):
     ytmusic = YTMusicTransfer()
     ytmusic.remove_playlists(args.pattern)

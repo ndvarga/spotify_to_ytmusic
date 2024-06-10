@@ -66,8 +66,8 @@ def get_args(args=None):
         "--append", help="Do not delete items, append to target playlist instead"
     )
     update_parser.add_argument(
-        "--allnew", 
-        help = "add new songs to their own playlist"
+        "--onlynew",  
+        help = "add new songs from spotify to a new playlist, include new name"
     )
     remove_parser = subparsers.add_parser(
         "remove", help="Remove playlists with specified regex pattern."

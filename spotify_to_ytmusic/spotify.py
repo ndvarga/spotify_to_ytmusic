@@ -59,7 +59,8 @@ class Spotify:
             tracks += build_results(more_tracks["items"])
             count = count + 100
             print(f"Spotify tracks: {len(tracks)}/{total}")
-
+            
+        print(tracks)
         return {
             "tracks": tracks,
             "name": name,
