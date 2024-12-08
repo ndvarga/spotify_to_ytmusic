@@ -4,8 +4,8 @@ from datetime import datetime
 import spotipy
 
 from spotify_to_ytmusic.setup import setup as setup_func
-from spotify import Spotify
-from ytmusic import YTMusicTransfer
+from spotify_to_ytmusic.spotify import Spotify
+from spotify_to_ytmusic.ytmusic import YTMusicTransfer
 import difflib
 import re
 
@@ -69,6 +69,7 @@ def _create_ytmusic(args, playlist, ytmusic:YTMusicTransfer):
 
 def create(args):
     spotify, ytmusic = _init()
+    
     playlist = _get_spotify_playlist(spotify, args.playlist)
     _create_ytmusic(args, playlist, ytmusic)
 
@@ -114,32 +115,36 @@ def remove(args):
 
 def debug(args):
     spotify, yt_music = _init()
-    if args.checkdiff:
+    if args.check_diff:
         sp_song_set = spotify.getSpotifyPlaylist(args.playlist)
-        yt_playlist_id = yt_music.get_playlist_id(args.yt_playlist)
+        if f'https://' in args.yt_playlist or f'music.youtube.com' in args.yt_playlist:
+            yt_playlist_id = yt_music.get_playlist_id(url = args.yt_playlist)
+        else: 
+            yt_playlist_id = yt_music.get_playlist_id(name = args.yt_playlist)
         yt_music.api.get_song(yt_playlist_id)
-        items = yt_music.api.get_playlist(yt_playlist_id, 10000)
+        yt_items = yt_music.api.get_playlist(yt_playlist_id, 10000)
 
-        if "tracks" in items:
-            yt_track_set = {(track["title"].lower(), tuple(artist["name"].lower() for artist in track["artists"])): track for track in items["tracks"]}
+        if "tracks" in yt_items:
+            yt_track_set = {(track["title"].lower(), tuple(artist["name"].lower() for artist in track["artists"])): track for track in yt_items["tracks"]}
             for sp_song in sp_song_set.keys():
                 song_matches = difflib.get_close_matches(sp_song, yt_track_set, n = 1, cutoff = 0.4)
                 if not song_matches:
                     #TODO do something when there are no matches
                     pass
+                print(song_matches)
         else:
             raise Exception("tracks not found in YT Playlist!")
         
         #check pattern for remix or edit
         pattern = r"(\(((?:(?:\w|\:)+\s)?(?:(?:\w|\:)+\s)?(?:[rR]emix|[Ee]dit))\))"
-        for track in items["tracks"]:
-            re_match = re.sub(pattern, r"- \2", track["title"])
+        for track in yt_items["tracks"]:
+            re_match = re.sub(pattern, r" \2", track["title"])
             if re_match:
                 print(f"match: {re_match[0]}")
        
 
         #print(diffSongs)
-        return [sp_song_set[song] for song in diffSongs]
+        # return [sp_song_set[song] for song in diffSongs]
         #print(song_matches)
 
 def setup(args):

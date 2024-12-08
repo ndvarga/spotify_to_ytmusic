@@ -1,7 +1,10 @@
 import argparse
 from pathlib import Path
+import sys
 
-import controllers
+import os.path as path
+sys.path.insert(0, path.abspath(path.join(path.dirname(__file__), '..')))
+from spotify_to_ytmusic import controllers
 
 def get_args(args=None):
     parser = argparse.ArgumentParser(description="Transfer spotify playlists to YouTube Music.")
@@ -54,7 +57,7 @@ def get_args(args=None):
 
     update_parser = subparsers.add_parser(
         "update",
-        help="Delete all entries in the provided Google Play Music playlist and update the playlist with entries from the Spotify playlist.",
+        help="Delete all entries in the provided Youtube Music playlist and update the playlist with entries from the Spotify playlist.",
         parents=[spotify_playlist],
     )
     update_parser.set_defaults(func=controllers.update)
@@ -92,7 +95,7 @@ def get_args(args=None):
     )
 
     debug_parser.add_argument(
-        "--check-diff", help="check difference between playlists"
+        "--check-diff", help="check difference between playlists", action='store_true'
     )
 
     return parser.parse_args(args)

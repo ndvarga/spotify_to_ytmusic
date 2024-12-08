@@ -3,12 +3,13 @@ import re
 from collections import OrderedDict
 
 from ytmusicapi import YTMusic
-
-from utils.match import get_best_fit_song_id
+import sys
+import os.path as path
+from spotify_to_ytmusic.utils.match import get_best_fit_song_id
 from spotify_to_ytmusic.settings import Settings
 #maybe change
 
-path = os.path.dirname(os.path.realpath(__file__)) + os.sep
+path = path.dirname(os.path.realpath(__file__)) + os.sep
 
 
 class YTMusicTransfer:
@@ -54,13 +55,20 @@ class YTMusicTransfer:
         videoIds = OrderedDict.fromkeys(videoIds)
         self.api.add_playlist_items(playlistId, videoIds)
 
-    def get_playlist_id(self, name):
-        pl = self.api.get_library_playlists(10000)
-        try:
-            playlist = next(x for x in pl if x["title"].find(name) != -1)["playlistId"]
+    def get_playlist_id(self, name:str=None, url:str=None):
+        if name:
+            pl = self.api.get_library_playlists(10000)
+            try:
+                playlist = next(x for x in pl if x["title"].find(name) != -1)["playlistId"]
+                return playlist
+            except:
+                raise Exception("Playlist title not found in playlists")
+        elif url:
+            playlist = re.split(r'list=([\w-])+', url, maxsplit = 1)
+            print(f'playlist id is {playlist}\n')
             return playlist
-        except:
-            raise Exception("Playlist title not found in playlists")
+
+
 
     def remove_songs(self, playlistId):
         items = self.api.get_playlist(playlistId, 10000)
