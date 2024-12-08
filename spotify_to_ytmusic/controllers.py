@@ -64,6 +64,9 @@ def _create_ytmusic(args, playlist, ytmusic:YTMusicTransfer):
     name = args.name + date if args.name else playlist["name"] + date
     info = playlist["description"] if (args.info is None) else args.info
     videoIds = ytmusic.search_songs(playlist["tracks"])
+    if args.like:
+        for id in videoIds:
+            ytmusic.rate_song(id, "LIKE")
 
     playlistId = ytmusic.create_playlist(
         name, info, "PUBLIC" if args.public else "PRIVATE", videoIds
