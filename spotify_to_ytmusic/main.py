@@ -42,7 +42,7 @@ def get_args(args=None):
         action="store_true",
         help="Make created playlist public. Default: private",
     )
-    
+
     create_parser = subparsers.add_parser(
         "create",
         help="Create a new playlist on YouTube Music.",
@@ -82,21 +82,6 @@ def get_args(args=None):
     )
     all_parser.add_argument("user", type=str, help="Spotify userid of the specified user.")
     all_parser.set_defaults(func=controllers.all)
-    
-    debug_parser = subparsers.add_parser(
-        "debug", help="debug stuff to check if everything is ok"
-    )
-    debug_parser.set_defaults(func = controllers.debug)
-    debug_parser.add_argument(
-        "playlist", help="spotify playlist url"
-    )
-    debug_parser.add_argument(
-        "yt_playlist", help="youtube playlist name"
-    )
-
-    debug_parser.add_argument(
-        "--check-diff", help="check difference between playlists", action='store_true'
-    )
 
     return parser.parse_args(args)
 

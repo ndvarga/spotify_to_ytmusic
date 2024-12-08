@@ -49,6 +49,9 @@ def all(args):
                 "PUBLIC" if p["public"] else "PRIVATE",
                 videoIds,
             )
+            if args.like:
+                for id in videoIds:
+                    ytmusic.rate_song(id, "LIKE")
             _print_success(p["name"], playlist_id)
         except Exception as ex:
             print(f"Could not transfer playlist {p['name']}. {str(ex)}")
@@ -61,6 +64,7 @@ def _create_ytmusic(args, playlist, ytmusic:YTMusicTransfer):
     name = args.name + date if args.name else playlist["name"] + date
     info = playlist["description"] if (args.info is None) else args.info
     videoIds = ytmusic.search_songs(playlist["tracks"])
+
     playlistId = ytmusic.create_playlist(
         name, info, "PUBLIC" if args.public else "PRIVATE", videoIds
     )

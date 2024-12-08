@@ -17,17 +17,22 @@ def setup(file: Optional[Path] = None):
 
     if not DEFAULT_PATH.is_file():
         shutil.copy(EXAMPLE_PATH, DEFAULT_PATH)
-    choice = input("Choose which API to set up\n" "(1) Spotify\n" "(2) YouTube\n" "(3) both\n")
-    choices = ["1", "2", "3"]
+    choice = input(
+        "Choose which API to set up\n(1) Spotify\n(2) Youtube (Browser)(recommended)\n(3) both \n(4) YouTube (oAuth) (deprecated)\n"
+    )
+
+    choices = ["1", "2", "3", "4"]
     if choice not in choices:
         sys.exit("Invalid choice")
 
     if choice == choices[0]:
         setup_spotify()
     elif choice == choices[1]:
-        setup_youtube()
+        setup_youtube_browser()
     elif choice == choices[2]:
         setup_spotify()
+        setup_youtube_browser()
+    elif choice == choices[3]:
         setup_youtube()
 
 
@@ -35,6 +40,18 @@ def setup_youtube():
     settings = Settings()
     credentials = ytmusicapi.setup_oauth(open_browser=has_browser())
     settings["youtube"]["headers"] = json.dumps(credentials.as_dict())
+    settings["youtube"]["auth_type"] = "oauth"
+    settings.save()
+
+
+def setup_youtube_browser():
+    settings = Settings()
+    print(
+        "Please see https://ytmusicapi.readthedocs.io/en/stable/setup/browser.html for instructions."
+    )
+    credentials = ytmusicapi.setup()
+    settings["youtube"]["headers"] = credentials
+    settings["youtube"]["auth_type"] = "browser"
     settings.save()
 
 
