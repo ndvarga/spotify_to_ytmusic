@@ -111,6 +111,7 @@ noresults.txt
 *.ini
 *.txt
 *.json
+output*
 
 #PDM
 .pdm-python

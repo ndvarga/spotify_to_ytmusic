@@ -1,8 +1,7 @@
 import argparse
 from pathlib import Path
 
-from spotify_to_ytmusic import controllers
-
+import controllers
 
 def get_args(args=None):
     parser = argparse.ArgumentParser(description="Transfer spotify playlists to YouTube Music.")
@@ -80,6 +79,21 @@ def get_args(args=None):
     )
     all_parser.add_argument("user", type=str, help="Spotify userid of the specified user.")
     all_parser.set_defaults(func=controllers.all)
+    
+    debug_parser = subparsers.add_parser(
+        "debug", help="debug stuff to check if everything is ok"
+    )
+    debug_parser.set_defaults(func = controllers.debug)
+    debug_parser.add_argument(
+        "playlist", help="spotify playlist url"
+    )
+    debug_parser.add_argument(
+        "yt_playlist", help="youtube playlist name"
+    )
+
+    debug_parser.add_argument(
+        "--check-diff", help="check difference between playlists"
+    )
 
     return parser.parse_args(args)
 

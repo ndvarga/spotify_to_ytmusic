@@ -33,13 +33,13 @@ def get_best_fit_song_id(ytm_results, spoti) -> str:
                 title = title_split[1]
 
         artists = " ".join([a["name"] for a in ytm["artists"]])
-
+        sp_artists = " ".join([artist for artist in spoti["artists"]])
         title_score[ytm["videoId"]] = difflib.SequenceMatcher(
             a=title.lower(), b=spoti["name"].lower()
         ).ratio()
         scores = [
             title_score[ytm["videoId"]],
-            difflib.SequenceMatcher(a=artists.lower(), b=spoti["artist"].lower()).ratio(),
+            difflib.SequenceMatcher(a=artists.lower(), b=sp_artists.lower()).ratio(),
         ]
         if duration_match_score:
             scores.append(duration_match_score * 5)

@@ -10,6 +10,7 @@ from spotify_to_ytmusic.settings import CACHE_DIR, Settings
 from spotify_to_ytmusic.utils.browser import has_browser
 
 
+
 class Spotify:
     def __init__(self):
         settings = Settings()
@@ -43,7 +44,8 @@ class Spotify:
             )
             self.api = spotipy.Spotify(client_credentials_manager=client_credentials_manager)
 
-    def getSpotifyPlaylist(self, url):
+    """ extracts the songs in a spotify playlist."""
+    def getSpotifyPlaylist(self, url:str):
         playlistId = extract_playlist_id_from_url(url)
 
         print("Getting Spotify tracks...")
@@ -60,7 +62,6 @@ class Spotify:
             count = count + 100
             print(f"Spotify tracks: {len(tracks)}/{total}")
             
-        print(tracks)
         return {
             "tracks": tracks,
             "name": name,
@@ -102,7 +103,8 @@ def build_results(tracks, album=None):
         album_name = album if album else track["album"]["name"]
         results.append(
             {
-                "artist": " ".join([artist["name"] for artist in track["artists"]]),
+                #"artist": "  ".join([artist["name"] for artist in track["artists"]]),
+                "artists": [artist["name"] for artist in track["artists"]],
                 "name": track["name"],
                 "album": album_name,
                 "duration": track["duration_ms"] / 1000,

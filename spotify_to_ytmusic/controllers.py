@@ -4,13 +4,15 @@ from datetime import datetime
 import spotipy
 
 from spotify_to_ytmusic.setup import setup as setup_func
-from spotify_to_ytmusic.spotify import Spotify
-from spotify_to_ytmusic.ytmusic import YTMusicTransfer
+from spotify import Spotify
+from ytmusic import YTMusicTransfer
+import difflib
+import re
 
 
-def _get_spotify_playlist(spotify, playlist):
+def _get_spotify_playlist(spotify:Spotify, playlist_url:str):
     try:
-        return spotify.getSpotifyPlaylist(playlist)
+        return spotify.getSpotifyPlaylist(playlist_url)
     except Exception as ex:
         print(
             "Could not get Spotify playlist. Please check the playlist link.\n Error: " + repr(ex)
@@ -26,6 +28,7 @@ def _print_success(name, playlistId):
 
 
 def _init():
+    """Construct `Spotify` and `YTMusicTransfer` objects. Returned as tuple."""
     return Spotify(), YTMusicTransfer()
 
 
@@ -82,24 +85,62 @@ def update(args):
     spotify, ytmusic = _init()
     playlist = _get_spotify_playlist(spotify, args.playlist)
     playlistId = ytmusic.get_playlist_id(args.name)
-    print(args.onlynew)
+    ytPlaylist =  ytmusic.api.get_playlist(playlistId)
+    
+
     if args.onlynew:
         #create a new playlist for changes
-        ytmusic.create_playlist(playlist["name"])
         #see if the songs in the spotify playlist exist in the youtube music playlist, if it doesn't add it to the new playlist
         newSongs = ytmusic.check_songs(playlistId, playlist["tracks"])
         newVideoIds = ytmusic.search_songs(newSongs)
-        ytmusic.add_playlist_items(playlistId, newVideoIds)
+        newIdsSet = set(newVideoIds)
+        oldIdsSet = set(track["videoId"] for track in ytPlaylist["tracks"])
+        if (newIdsSet - oldIdsSet):
+            newIds = list(newIdsSet.difference(oldIdsSet))
+            print(newIds)
+            newPlaylistId = ytmusic.create_playlist(args.onlynew, "", privacy=ytPlaylist["privacy"], trackIds=newIds)
+            print(f"playlist created at {newPlaylistId}")
    # else:    
    #     videoIds = ytmusic.search_songs(playlist["tracks"])
     #    if not args.append:
      #       ytmusic.remove_songs(playlistId)
       #  time.sleep(2)
        # ytmusic.add_playlist_items(playlistId, videoIds)
+
+
 def remove(args):
     ytmusic = YTMusicTransfer()
     ytmusic.remove_playlists(args.pattern)
 
+def debug(args):
+    spotify, yt_music = _init()
+    if args.checkdiff:
+        sp_song_set = spotify.getSpotifyPlaylist(args.playlist)
+        yt_playlist_id = yt_music.get_playlist_id(args.yt_playlist)
+        yt_music.api.get_song(yt_playlist_id)
+        items = yt_music.api.get_playlist(yt_playlist_id, 10000)
+
+        if "tracks" in items:
+            yt_track_set = {(track["title"].lower(), tuple(artist["name"].lower() for artist in track["artists"])): track for track in items["tracks"]}
+            for sp_song in sp_song_set.keys():
+                song_matches = difflib.get_close_matches(sp_song, yt_track_set, n = 1, cutoff = 0.4)
+                if not song_matches:
+                    #TODO do something when there are no matches
+                    pass
+        else:
+            raise Exception("tracks not found in YT Playlist!")
+        
+        #check pattern for remix or edit
+        pattern = r"(\(((?:(?:\w|\:)+\s)?(?:(?:\w|\:)+\s)?(?:[rR]emix|[Ee]dit))\))"
+        for track in items["tracks"]:
+            re_match = re.sub(pattern, r"- \2", track["title"])
+            if re_match:
+                print(f"match: {re_match[0]}")
+       
+
+        #print(diffSongs)
+        return [sp_song_set[song] for song in diffSongs]
+        #print(song_matches)
 
 def setup(args):
     setup_func(args.file)
