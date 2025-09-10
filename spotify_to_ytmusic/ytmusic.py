@@ -3,10 +3,11 @@ import re
 from collections import OrderedDict
 
 from ytmusicapi import YTMusic
-import sys
 import os.path as path
-from spotify_to_ytmusic.utils.match import get_best_fit_song_id
-from spotify_to_ytmusic.settings import Settings
+import sys
+if __name__ != '__main__':
+    from spotify_to_ytmusic.utils.match import get_best_fit_song_id
+    from spotify_to_ytmusic.settings import Settings
 #maybe change
 
 path = path.dirname(os.path.realpath(__file__)) + os.sep
@@ -17,7 +18,7 @@ class YTMusicTransfer:
         settings = Settings()
         headers = settings["youtube"]["headers"]
         assert headers.startswith("{"), "ytmusicapi headers not set or invalid"
-        self.api = YTMusic(headers, settings["youtube"]["user_id"])
+        self.api = YTMusic(auth='spotify_to_ytmusic/browser.json')
 
     def create_playlist(self, name, info, privacy="PRIVATE", tracks=None):
         return self.api.create_playlist(name, info, privacy, video_ids=tracks)
@@ -32,9 +33,10 @@ class YTMusicTransfer:
         print("Searching YouTube...")
         for i, song in enumerate(songs):
             name = re.sub(r" \(feat.*\..+\)", "", song["name"])
-            query = str(artist + " " for artist in song["artists"]) + name
+            artist_names = ' '.join(song["artists"])
+            query = ' '.join([artist_names, name])
             query = query.replace(" &", " ")
-            result = self.api.search(query)
+            result = self.api.search(query, "songs")
             if len(result) == 0:
                 notFound.append(query)
             else:
@@ -67,9 +69,10 @@ class YTMusicTransfer:
             except:
                 raise Exception("Playlist title not found in playlists")
         elif url:
-            playlist = re.split(r'list=([\w-])+', url, maxsplit = 1)
-            print(f'playlist id is {playlist}\n')
-            return playlist
+            playlist_id = re.findall(r'list=([\w-]+)\??\&?', url)
+            if not playlist_id:
+                raise Exception("No playlist found!")
+            return playlist_id[0]
 
 
 
@@ -93,5 +96,18 @@ class YTMusicTransfer:
         else:
             print("Aborted. No playlists were deleted.")
 
-    
-        
+    """ Checks songs from a playlist dict returned by YTMusic.get"""
+    def check_songs(self, playlist:dict, spotifyTracks):
+        playlistSongs = playlist["tracks"]
+        playlistIdSet = {song["videoId"] for song in playlistSongs}
+        spotifySongIdSet = set(self.search_songs(spotifyTracks))
+        newSongIdSet = spotifySongIdSet - playlistIdSet
+        return newSongIdSet
+
+if __name__ == '__main__':
+    from utils.match import get_best_fit_song_id
+    from settings import Settings
+    print("Current working directory:", os.getcwd())
+    yt_music = YTMusicTransfer()
+    print(yt_music.get_playlist_id('new'))
+    print(yt_music.check_songs())        

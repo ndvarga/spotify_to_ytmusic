@@ -1,13 +1,15 @@
 import time
 from datetime import datetime
-
+import os
 import spotipy
+import json
 
 from spotify_to_ytmusic.setup import setup as setup_func
 from spotify_to_ytmusic.spotify import Spotify
 from spotify_to_ytmusic.ytmusic import YTMusicTransfer
 import difflib
 import re
+
 
 
 def _get_spotify_playlist(spotify:Spotify, playlist_url:str):
@@ -78,6 +80,8 @@ def create(args):
     spotify, ytmusic = _init()
     
     playlist = _get_spotify_playlist(spotify, args.playlist)
+    if args.store_json:
+        spotify.saveSpotifyPlaylist()
     _create_ytmusic(args, playlist, ytmusic)
 
 
@@ -91,29 +95,30 @@ def liked(args):
 
 def update(args):
     spotify, ytmusic = _init()
-    playlist = _get_spotify_playlist(spotify, args.playlist)
+    if args.use_local:
+        spPlaylistId = spotify.extract_playlist_id_from_url(args.playlist)
+        spPlaylistName = spotify.api.playlist(spPlaylistId)["name"]
+        with open(f'playlists{os.sep}{spPlaylistName}.json', "r", encoding="utf-8") as spotify_tracks:
+            playlist = json.load(spotify_tracks)
+            spotify_tracks.close()
+    else:
+        playlist = _get_spotify_playlist(spotify, args.playlist)
     playlistId = ytmusic.get_playlist_id(args.name)
     ytPlaylist =  ytmusic.api.get_playlist(playlistId)
     
 
-    if args.onlynew:
-        #create a new playlist for changes
-        #see if the songs in the spotify playlist exist in the youtube music playlist, if it doesn't add it to the new playlist
-        newSongs = ytmusic.check_songs(playlistId, playlist["tracks"])
-        newVideoIds = ytmusic.search_songs(newSongs)
-        newIdsSet = set(newVideoIds)
-        oldIdsSet = set(track["videoId"] for track in ytPlaylist["tracks"])
-        if (newIdsSet - oldIdsSet):
-            newIds = list(newIdsSet.difference(oldIdsSet))
-            print(newIds)
-            newPlaylistId = ytmusic.create_playlist(args.onlynew, "", privacy=ytPlaylist["privacy"], trackIds=newIds)
-            print(f"playlist created at {newPlaylistId}")
-   # else:    
-   #     videoIds = ytmusic.search_songs(playlist["tracks"])
-    #    if not args.append:
-     #       ytmusic.remove_songs(playlistId)
-      #  time.sleep(2)
-       # ytmusic.add_playlist_items(playlistId, videoIds)
+    if args.diff:
+        newIds = ytmusic.check_songs(playlist, playlist["tracks"])
+        if newIds:
+            newPlaylistId = ytmusic.create_playlist(args.diff, "", privacy=ytPlaylist["privacy"], trackIds=newIds)
+            print(f"Success! diff playlist created at {newPlaylistId}")
+            
+    else:    
+       videoIds = ytmusic.search_songs(playlist["tracks"])
+       if not args.append:
+           ytmusic.remove_songs(playlistId)
+       time.sleep(2)
+       ytmusic.add_playlist_items(playlistId, videoIds)
 
 
 def remove(args):
@@ -122,25 +127,47 @@ def remove(args):
 
 def debug(args):
     spotify, yt_music = _init()
+    if args.store:
+        spotify.getSpotifyPlaylist(args.playlist)
+        spotify.saveCurSpotifyPlaylist()
     if args.check_diff:
-        sp_song_set = spotify.getSpotifyPlaylist(args.playlist)
+        spPlaylistId = spotify.extract_playlist_id_from_url(args.playlist)
+        playlistName = spotify.api.playlist(spPlaylistId)
+        with open(f'playlists{os.sep}{playlistName}.json') as tracks_json:
+            spotify_items = json.load(tracks_json)
+            tracks_json.close()
+        spotify_items = spotify.getSpotifyPlaylist(args.playlist)
         if f'https://' in args.yt_playlist or f'music.youtube.com' in args.yt_playlist:
             yt_playlist_id = yt_music.get_playlist_id(url = args.yt_playlist)
         else: 
             yt_playlist_id = yt_music.get_playlist_id(name = args.yt_playlist)
-        yt_music.api.get_song(yt_playlist_id)
+        
         yt_items = yt_music.api.get_playlist(yt_playlist_id, 10000)
 
+        
         if "tracks" in yt_items:
-            yt_track_set = {(track["title"].lower(), tuple(artist["name"].lower() for artist in track["artists"])): track for track in yt_items["tracks"]}
-            for sp_song in sp_song_set.keys():
-                song_matches = difflib.get_close_matches(sp_song, yt_track_set, n = 1, cutoff = 0.4)
-                if not song_matches:
+            yt_music.check_songs(yt_items["tracks"], spotify_items["name"])
+            """yt_track_titles = [track['title'].lower() for track in yt_items['tracks']]
+            yt_artists = [[artist['name'].lower() for artist in track['artists']] for track in yt_items['tracks']]
+            for i, yt_track in enumerate(yt_track_titles):
+                
+                track_name_matches = difflib.get_close_matches(yt_track, spotify._cur_track_titles, cutoff = 0.65, n = 10)
+                if track_name_matches:
+                    track_idx = spotify._cur_track_titles.index(track_name_matches[0])
+                    artist_name_matches = []
+                    for artist in yt_artists[i]:
+                        artist_name_matches.append(difflib.get_close_matches(artist, spotify._cur_artist_names[track_idx,:].tolist(), n = 100))    
+                    print(f'matched these songs from youtube to spotify: {track_name_matches}')                    
+                else:
                     #TODO do something when there are no matches
                     pass
-                print(song_matches)
+                
+                if spotify._cur_track_titles.count(track_name_matches[0]) > 0:
+                    print(f'matched these songs from youtube to spotify: {track_name_matches}')
+                    # for match in track_name_matches:
+                    #     pass
         else:
-            raise Exception("tracks not found in YT Playlist!")
+            raise Exception("tracks not found in YT Playlist!")"""
         
         #check pattern for remix or edit
         pattern = r"(\(((?:(?:\w|\:)+\s)?(?:(?:\w|\:)+\s)?(?:[rR]emix|[Ee]dit))\))"

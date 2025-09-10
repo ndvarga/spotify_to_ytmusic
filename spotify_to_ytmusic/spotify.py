@@ -1,6 +1,8 @@
 import html
 import string
 import re
+import json
+import os
 
 import spotipy
 from spotipy import CacheFileHandler
@@ -44,9 +46,9 @@ class Spotify:
             )
             self.api = spotipy.Spotify(client_credentials_manager=client_credentials_manager)
 
-    """ extracts the songs in a spotify playlist."""
+    """extracts the songs in a spotify playlist."""
     def getSpotifyPlaylist(self, url:str):
-        playlistId = extract_playlist_id_from_url(url)
+        playlistId = self.extract_playlist_id_from_url(url)
 
         print("Getting Spotify tracks...")
         results = self.api.playlist(playlistId)
@@ -61,12 +63,25 @@ class Spotify:
             tracks += build_results(more_tracks["items"])
             count = count + 100
             print(f"Spotify tracks: {len(tracks)}/{total}")
-            
-        return {
+
+
+        self._cur_tracks = {
             "tracks": tracks,
             "name": name,
             "description": html.unescape(results["description"]),
         }
+        # = [spotify_track['name'].lower() for spotify_track in tracks]
+        # artists = pd.DataFrame([[artist.lower() for artist in track['artists']] for track in tracks])
+        # self._cur_artists = artists
+        return self._cur_tracks
+    
+    """Method to save a spotify playlist."""
+    def saveCurSpotifyPlaylist(self):
+        playlist = self._cur_tracks
+        directory = f'playlists{os.sep}{playlist["name"]}.json'
+        os.makedirs('playlists', exist_ok=True)
+        with open(directory, "w", encoding="utf-8") as playlist_json:
+            json.dump(playlist, playlist_json, indent=2, ensure_ascii=False)
 
     def getUserPlaylists(self, user):
         pl = self.api.user_playlists(user)["items"]
@@ -92,6 +107,19 @@ class Spotify:
             "name": "Liked songs (Spotify)",
             "description": "Your liked tracks from spotify",
         }
+    
+    def extract_playlist_id_from_url(self, url: str) -> str:
+        if match := re.search(r"playlist\/(?P<id>\w{22})\W?", url):
+            return match.group("id")
+        elif match := re.search(r"playlist\/(?P<id>\w+)\W?", url):
+            id = match.group("id")
+            raise ValueError(
+                f"Bad playlist id: {id}\nA playlist id should be 22 characters long, not {len(id)}"
+            )
+        else:
+            raise ValueError(
+                f"Couldn't understand playlist url: {url}\nA playlist url should look like this: https://open.spotify.com/playlist/37i9dQZF1DZ06evO41HwPk"
+            )
 
 
 def build_results(tracks, album=None):
@@ -115,15 +143,4 @@ def build_results(tracks, album=None):
     return results
 
 
-def extract_playlist_id_from_url(url: str) -> str:
-    if match := re.search(r"playlist\/(?P<id>\w{22})\W?", url):
-        return match.group("id")
-    elif match := re.search(r"playlist\/(?P<id>\w+)\W?", url):
-        id = match.group("id")
-        raise ValueError(
-            f"Bad playlist id: {id}\nA playlist id should be 22 characters long, not {len(id)}"
-        )
-    else:
-        raise ValueError(
-            f"Couldn't understand playlist url: {url}\nA playlist url should look like this: https://open.spotify.com/playlist/37i9dQZF1DZ06evO41HwPk"
-        )
+

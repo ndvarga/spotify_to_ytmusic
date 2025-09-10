@@ -49,6 +49,12 @@ def get_args(args=None):
         help="Like the songs in the specified playlist",
     )
 
+    spotify_playlist_create.add_argument(
+        "--store-json",
+        action="store_true",
+        help="store a json of the playlist locally"
+    )
+
     create_parser = subparsers.add_parser(
         "create",
         help="Create a new playlist on YouTube Music.",
@@ -74,9 +80,16 @@ def get_args(args=None):
         "--append", help="Do not delete items, append to target playlist instead"
     )
     update_parser.add_argument(
-        "--onlynew",  
-        help = "add new songs from spotify to a new playlist, include new name"
+        "--diff",  
+        help ="Add only different songs between the spotify playlist and youtube music playlist. \
+            Argument is the name of the new playlist"
     )
+    update_parser.add_argument(
+        "--use-local",
+        action="store_true",
+        help= "use the local json of the playlist. Increases speed"
+    )
+
     remove_parser = subparsers.add_parser(
         "remove", help="Remove playlists with specified regex pattern."
     )
@@ -100,15 +113,21 @@ def get_args(args=None):
     )
     debug_parser.set_defaults(func = controllers.debug)
     debug_parser.add_argument(
-        "playlist", help="spotify playlist url"
+        "playlist", help="spotify playlist name or url"
     )
     debug_parser.add_argument(
-        "yt_playlist", help="youtube playlist name"
+        "yt_playlist", help="youtube playlist name", default=None, nargs='?'
     )
 
     debug_parser.add_argument(
         "--check-diff", help="check difference between playlists", action='store_true'
     )
+    debug_parser.add_argument(
+        "-s",
+        "--store",
+        action="store_true",
+        help="store local copy of spotify playlist json"
+    )    
 
     return parser.parse_args(args)
 
